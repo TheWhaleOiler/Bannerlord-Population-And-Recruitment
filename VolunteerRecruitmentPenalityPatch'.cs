@@ -59,7 +59,8 @@ namespace PopulationAndRecruitment {
                     var tracker = _slotCosts[key];
 
                     if (tracker.Troop == null && current != null) {
-                        if (settings.DisableSpawnCostDuringKingdomPeace) {
+                        if (settings.DisableSpawnCostDuringKingdomPeace 
+                            && !GetBasicVolunteerPatch.checkIsAtWar(settlement.OwnerClan.Kingdom, settlement.OwnerClan)) {
                             tracker.Troop = current;
                         }
                         else if (CanAffordVolunteer(settlement)) {
@@ -91,18 +92,18 @@ namespace PopulationAndRecruitment {
             var settings = PopulationAndRecruitmentSettings.Instance;
 
             if (settlement.IsTown && settlement.Town != null) {
-                return settlement.Town.Prosperity >= settings.MinimumFiefProsperityRequired &&
-                       settlement.Militia >= settings.MinimumTownMilitiaRequired;
+                return settlement.Town.Prosperity >= settings.MinimumFiefProsperityRequired 
+                    && settlement.Militia >= settings.MinimumTownMilitiaRequired;
             }
 
             if (settlement.IsCastle && settlement.Town != null) {
-                return settlement.Town.Prosperity >= settings.MinimumFiefProsperityRequired &&
-                       settlement.Militia >= settings.MinimumCastleMilitiaRequired;
+                return settlement.Town.Prosperity >= settings.MinimumFiefProsperityRequired 
+                    && settlement.Militia >= settings.MinimumCastleMilitiaRequired;
             }
 
             if (settlement.IsVillage && settlement.Village != null) {
-                return settlement.Village.Hearth >= settings.MinimumVillageHearthRequired &&
-                       settlement.Militia >= settings.MinimumVillageMilitiaRequired;
+                return settlement.Village.Hearth >= settings.MinimumVillageHearthRequired 
+                    && settlement.Militia >= settings.MinimumVillageMilitiaRequired;
             }
             return false;
         }

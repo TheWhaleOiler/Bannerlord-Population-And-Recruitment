@@ -23,21 +23,20 @@ namespace PopulationAndRecruitment {
         [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate")]
         public int VillageAsymptoteDenominatior { get; set; } = 500;
 
-
-        [SettingPropertyInteger("Town Elite Troop", 0, 20000, "0", Order = 3, RequireRestart = false)]
-        [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate")]
-        public int TownEliteAsymptoteDenominator { get; set; } = 2000;
-
         [SettingPropertyInteger("Castle Elite Troop", 0, 20000, "0", Order = 3, RequireRestart = false)]
         [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate")]
         public int CastleEliteAsymptoteDenominator { get; set; } = 1000;
 
-        [SettingPropertyInteger("Village Elite Troop", 0, 20000, "0", Order = 3, RequireRestart = false)]
-        [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate")]
+        [SettingPropertyInteger("Town Elite Troop", 0, 20000, "0", Order = 1, RequireRestart = false)]
+        [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate/Global Elite Troops")]
+        public int TownEliteAsymptoteDenominator { get; set; } = 2000;
+
+        [SettingPropertyInteger("Village (Hearth) Elite Troop", 0, 20000, "0", Order = 2, RequireRestart = false)]
+        [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate/Global Elite Troops")]
         public int VillageEliteAsymptoteDenominator { get; set; } = 600;
 
-        [SettingPropertyBool("Enable Global Elite Troops", Order = 2, RequireRestart = false)]
-        [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate")]
+        [SettingPropertyBool("Enable Global Elite Troops", Order = 0, RequireRestart = false)]
+        [SettingPropertyGroup("Prosperity Needed For Equal Spawnrate/Global Elite Troops")]
         public bool EnableGlobalEliteTroops { get; set; } = false;
 
 
@@ -81,9 +80,9 @@ namespace PopulationAndRecruitment {
         public float MinimumVillageMilitiaRequired { get; set; } = 25f;
 
 
-        [SettingPropertyBool("Disable Spawn Cost During Peace", Order = 3, RequireRestart = false, HintText = "If Disabled, Garrisons Will Slowly Weaken due to Lower Troop Supply")]
+        [SettingPropertyBool("Disable Spawn Cost During Peace", Order = 3, RequireRestart = false, HintText = "Enable To Allow Kingdoms To Recover After War")]
         [SettingPropertyGroup("Recruitment Costs")]
-        public bool DisableSpawnCostDuringKingdomPeace { get; set; } = true;
+        public bool DisableSpawnCostDuringKingdomPeace { get; set; } = false;
 
 
         [SettingPropertyFloatingInteger("Mercenary Spawnrate", 0f, 1f, "#0%", Order = 0, RequireRestart = false)]
