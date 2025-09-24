@@ -1,0 +1,6 @@
+.vs/*
+_Module/*
+obj/*
+bin/*
+.vscode/*
+Properties/*
