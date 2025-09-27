@@ -115,6 +115,11 @@ namespace PopulationAndRecruitment {
         [SettingPropertyGroup("Miscellaneous")]
         public bool LordsCanOnlyRecruitFromKingdom { get; set; } = false;
 
+        [SettingPropertyBool("Enable Troop Compatbility Patch", Order = 0, RequireRestart = false, HintText = "Only needed if you didn't specify the troops in troop_config file")]
+        [SettingPropertyGroup("Miscellaneous")]
+
+        public bool EnableTroopCompatibility { get; set; } = false;
+
         [SettingPropertyBool("Debug", Order = 999, RequireRestart = false, HintText = "Debug")]
         [SettingPropertyGroup("Debug")]
         public bool DebugLog { get; set; } = false;

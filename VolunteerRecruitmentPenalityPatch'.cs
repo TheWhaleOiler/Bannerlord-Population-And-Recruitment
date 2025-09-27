@@ -39,7 +39,6 @@ namespace PopulationAndRecruitment {
             }
         }
 
-
         [HarmonyPostfix]
         static void Postfix(Settlement settlement)
         {
@@ -59,7 +58,8 @@ namespace PopulationAndRecruitment {
                     var tracker = _slotCosts[key];
 
                     if (tracker.Troop == null && current != null) {
-                        if (settings.DisableSpawnCostDuringKingdomPeace 
+                        if (settings.DisableSpawnCostDuringKingdomPeace
+                            && CanAffordVolunteer(settlement)
                             && !GetBasicVolunteerPatch.checkIsAtWar(settlement.OwnerClan.Kingdom, settlement.OwnerClan)) {
                             tracker.Troop = current;
                         }

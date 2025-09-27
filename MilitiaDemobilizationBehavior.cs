@@ -45,6 +45,13 @@ namespace PopulationAndRecruitment {
         }
 
         private void OnDailyTick() {
+
+            var settings = PopulationAndRecruitmentSettings.Instance;
+
+            if (settings.AiMilitiaDemobilizationRate <= 0
+                || settings.VillageOnlySpawnsMilitia)
+                return;
+
             foreach (var party in MobileParty.All.Where(p => p.IsLordParty && !p.IsMainParty)) {
                 PurgeMilitia(party);
             }
@@ -52,10 +59,6 @@ namespace PopulationAndRecruitment {
 
         private void PurgeMilitia(MobileParty party) {
             var settings = PopulationAndRecruitmentSettings.Instance;
-
-            if (settings.AiMilitiaDemobilizationRate <= 0 
-                || settings.VillageOnlySpawnsMilitia)
-                return;
 
             var faction = party.LeaderHero?.MapFaction;
             if (faction == null || GetBasicVolunteerPatch.checkIsAtWar(party.LeaderHero?.Clan?.Kingdom, party.LeaderHero?.Clan)) {
