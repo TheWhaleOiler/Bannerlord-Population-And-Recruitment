@@ -6,20 +6,23 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HarmonyLib;
+using MCM.Common;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.MountAndBlade;
+using TaleWorlds.ObjectSystem;
 using static TaleWorlds.Core.ItemCategory;
 
 namespace PopulationAndRecruitment {
     [HarmonyPatch(typeof(DefaultVolunteerModel))]
     public class GetBasicVolunteerPatch {
 
-        [HarmonyPrefix]
+        [HarmonyPostfix]
         [HarmonyPatch("GetBasicVolunteer")]
-        public static bool GetBasicVolunteer_Postfix(ref CharacterObject __result, Hero sellerHero) {
+        public static void GetBasicVolunteer_Postfix(ref CharacterObject __result, Hero sellerHero) {
 
             var settings = PopulationAndRecruitmentSettings.Instance;
 
@@ -31,7 +34,9 @@ namespace PopulationAndRecruitment {
             if (settlement.IsTown) {
                 var prosperity = settlement.Town.Prosperity;
 
-                if (HighProsperityRoll(prosperity, settings.TownAsymptoteDenominatior))
+                if (HighProsperityRoll(prosperity, settings.TownAsymptoteDenominatior)
+                    || settings.EnableAiSettlementMilitiaDemobilization)
+                    
                     if (settings.EnableTroopCompatibility)
                         __result = __result; // No-op
                     else if (settings.EnableGlobalEliteTroops)
@@ -46,7 +51,9 @@ namespace PopulationAndRecruitment {
             else if (settlement.IsCastle) {
                 var prosperity = settlement.Town.Prosperity;
 
-                if (HighProsperityRoll(prosperity, settings.CastleAsymptoteDenominatior))
+                if (HighProsperityRoll(prosperity, settings.CastleAsymptoteDenominatior)
+                    || settings.EnableAiSettlementMilitiaDemobilization)
+
                     if (settings.EnableTroopCompatibility)
                         __result = __result;
                     else
@@ -74,19 +81,22 @@ namespace PopulationAndRecruitment {
                 }
                 else
                     __result = TroopPool.GetMilitiaTroop(culture);
-            }
+             }
             //else
             //    __result = __result;
 
             // Demobilized Kingdom not at war
-            if (!settings.VillageOnlySpawnsMilitia
-                && (__result == culture.MeleeMilitiaTroop || __result == culture.RangedMilitiaTroop || __result == TroopPool.GetMilitiaTroop(culture))
-                && !checkIsAtWar(kingdom, clan)) {
-                __result = null;
-            }
+            //if (settings.EnableAiSettlementMilitiaDemobilization
+            //    && TroopPool.IsMilitia(__result)
+            //    && !checkIsAtWar(kingdom, clan)) {
 
-            return false;
+            //    __result = null;
 
+            //    if (MBRandom.RandomFloat > 0.95f && settlement.IsVillage) // 5% Chance for militia troop to spawn for lords who doesnt own fief in peacetime
+            //        __result = TroopPool.GetMilitiaTroop(culture);
+            //}
+
+            //return false;
         }
 
         public static bool checkIsAtWar(Kingdom kingdom, Clan clan) {
@@ -112,44 +122,84 @@ namespace PopulationAndRecruitment {
 
     internal static class TroopPool {
 
-        private static Dictionary<string, Dictionary<string, CharacterObject>> cultureTroopPool = new();
+        private static Dictionary<string, Dictionary<string, List<CharacterObject>>> cultureTroopPool = new();
 
-        public static void ReInitalizeTroopPool(Dictionary<string, Dictionary<string, string>> troopMap) {
-            string troopId;
+        private static List<CharacterObject> allMilitiaTroops = new();
+
+        private static Random _random = new Random();
+
+        public static void ReInitalizeTroopPool(Dictionary<string, Dictionary<string, List<string>>> troopMap) {
 
             bool allLoadedFlag = true;
 
+            cultureTroopPool = new();
+
             String[] troopTypes = new[] { "EliteTroop", "BasicTroop", "EliteMilitiaTroop", "MilitiaTroop" };
+
+            List<String> militiaTypes = new List<string> { "EliteMilitiaTroop", "MilitiaTroop" };
+
+        
+            foreach (var culture in MBObjectManager.Instance.GetObjectTypeList<CultureObject>()) {
+                if (culture.MeleeMilitiaTroop != null) {
+                    allMilitiaTroops.Add(culture.MeleeMilitiaTroop);
+                }
+                if (culture.RangedMilitiaTroop != null) {
+                    allMilitiaTroops.Add(culture.RangedMilitiaTroop);
+                }
+            }
+
 
             foreach (string culture in troopMap.Keys) {
                 if (!cultureTroopPool.ContainsKey(culture)) {
-                    cultureTroopPool[culture] = new Dictionary<string, CharacterObject>();
+                    cultureTroopPool[culture] = new Dictionary<string, List<CharacterObject>>();
                 }
 
-                foreach (string type in troopTypes) {
-                    CharacterObject troop = CharacterObject.Find(troopMap[culture][type]);
-                    if (troop == null) {
-                        allLoadedFlag = false;
-                        InformationManager.DisplayMessage(new InformationMessage($"{culture} : {type}"));
-                        continue;
+                foreach (string type in troopMap[culture].Keys) {
+
+                    if (!cultureTroopPool[culture].ContainsKey(type))
+                        cultureTroopPool[culture][type] = new ();
+
+                    foreach (string troop_id in troopMap[culture][type]) {
+                        CharacterObject troop = CharacterObject.Find(troop_id);
+                        if (troop == null) {
+                            allLoadedFlag = false;
+                            InformationManager.DisplayMessage(new InformationMessage($"{culture} : {type}"));
+                            continue;
+                        }
+
+                        CharacterObject foundTroop = CharacterObject.Find(troop_id);
+
+                        if (militiaTypes.Contains(type)) {
+                            allMilitiaTroops.Add(foundTroop);
+                        }
+
+                        cultureTroopPool[culture][type].Add(foundTroop);
                     }
-                    cultureTroopPool[culture][type] = CharacterObject.Find(troopMap[culture][type]);
                 }
             }
 
             if (allLoadedFlag == false)
                 InformationManager.DisplayMessage(new InformationMessage("Some Troop config loaded unsuccessfully.", Colors.Red));
             else
-                InformationManager.DisplayMessage(new InformationMessage("Troop config loaded successfully."));
+                InformationManager.DisplayMessage(new InformationMessage($"{PopulationAndRecruitmentSettings.Instance.TroopConfigDropDown.SelectedValue} Troop config loaded successfully."));
         }
 
+        public static bool IsMilitia(CharacterObject c) {
+            return allMilitiaTroops.Contains(c);
+        }
         private static bool GetTroop(CultureObject co, string troopType, out CharacterObject refTroop) {
 
             string cultureName = co.GetName().ToString().ToLower();
 
             if (cultureTroopPool.ContainsKey(cultureName)
-                && cultureTroopPool[cultureName].ContainsKey(troopType)) {
-                refTroop = cultureTroopPool[cultureName][troopType];
+                && cultureTroopPool[cultureName].ContainsKey(troopType)
+                && cultureTroopPool[cultureName][troopType].Count > 0) {
+
+                var troop_count = cultureTroopPool[cultureName][troopType].Count;
+
+                int choice = _random.Next(troop_count);
+
+                refTroop = cultureTroopPool[cultureName][troopType][choice];
                 return true;
             }
             refTroop = null;
@@ -190,10 +240,25 @@ namespace PopulationAndRecruitment {
 
         [HarmonyPostfix]
         [HarmonyPatch("OnGameLoaded")]
-        public static void OnGameLoaded_Postfix() {
-            Dictionary<string, Dictionary<string, string> > TroopPoolMap = new Dictionary<string, Dictionary<string, string>>();
+        public static void OnGameLoaded_PostFix() => InitializeTroopConfig();
 
-            string configPath = Path.Combine(BasePath.Name, "Modules", "PopulationAndRecruitment", "troop_config.txt");
+        [HarmonyPostfix]
+        [HarmonyPatch("OnNewGameCreated")]
+        public static void OnNewGameCreated_Postfix() => InitializeTroopConfig();
+
+        internal static void InitializeTroopConfig() {
+            Dictionary<string, Dictionary<string, List<string> > > TroopPoolMap = new Dictionary<string, Dictionary<string, List<string>>>();
+
+            var settings = PopulationAndRecruitmentSettings.Instance;
+
+            InitalizeTroopConfigDropDown();
+
+            string configName = settings.TroopConfigDropDown.SelectedValue;
+
+            if (configName == "None")
+                return;
+
+            string configPath = Path.Combine(BasePath.Name, "Modules", "PopulationAndRecruitment", "troop_configs", configName);
 
             if (File.Exists(configPath)) {
                 try {
@@ -218,12 +283,17 @@ namespace PopulationAndRecruitment {
                         }
 
                         if (!TroopPoolMap.ContainsKey(culture))
-                            TroopPoolMap[culture] = new Dictionary<string, string>();
+                            TroopPoolMap[culture] = new Dictionary<string, List<string>>();
 
                         var key = parts[0].Trim();
                         var value = parts[1].Trim();
 
-                        TroopPoolMap[culture][key] = value;
+                        List<string> value_list = value.Trim('[', ']')
+                            .Split(',')
+                            .Select(s => s.Trim())
+                            .ToList();
+
+                        TroopPoolMap[culture][key] = value_list;
                         
                     }
 
@@ -235,8 +305,40 @@ namespace PopulationAndRecruitment {
                 }
             }
             else {
-                InformationManager.DisplayMessage(new InformationMessage("Troop config file not found."));
+                InformationManager.DisplayMessage(new InformationMessage($"{configName} Troop config file not found."));
             }
+        }
+
+        internal static void InitalizeTroopConfigDropDown() {
+            var settings = PopulationAndRecruitmentSettings.Instance;
+
+            var selectedIndex = settings.TroopConfigDropDown.SelectedIndex;
+
+            var newDropDown = new Dropdown<string>(FindAllTroopConfigs(), selectedIndex);
+
+            settings.TroopConfigDropDown = newDropDown;
+        }
+        private static List<string> FindAllTroopConfigs() {
+            List<string> allTroopConfigs = new();
+
+            string configPath = Path.Combine(BasePath.Name, "Modules", "PopulationAndRecruitment", "troop_configs");
+
+            if (Directory.Exists(configPath)) {
+                string[] files = Directory.GetFiles(configPath);
+                foreach (string file in files) {
+                    allTroopConfigs.Add(Path.GetFileName(file));
+                }
+            }
+            return allTroopConfigs;
+        }
+    }
+
+    [HarmonyPatch(typeof(InitialState))]
+    internal static class InitialStatePatch {
+        [HarmonyPostfix]
+        [HarmonyPatch("OnActivate")]
+        public static void OnActivate_Postfix() {
+            InitializeTroopPool.InitalizeTroopConfigDropDown();
         }
     }
 

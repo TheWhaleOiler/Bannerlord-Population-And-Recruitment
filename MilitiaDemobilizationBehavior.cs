@@ -9,47 +9,19 @@ using TaleWorlds.ObjectSystem;
 
 namespace PopulationAndRecruitment {
     public class MilitiaPurgeCampaignBehavior : CampaignBehaviorBase {
-        private List<CharacterObject> _allMilitiaTroops;
 
         public override void RegisterEvents() {
-
-            CampaignEvents.OnNewGameCreatedEvent.AddNonSerializedListener(this, (starter) => InitializeMilitiaTroopsList());
-
-            CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, (starter) => InitializeMilitiaTroopsList());
-
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
         }
 
         public override void SyncData(IDataStore dataStore) {}
 
-        private void InitializeMilitiaTroopsList() {
-
-            var allCultures = new List<CultureObject>();
-
-            foreach (CultureObject objectType in MBObjectManager.Instance.GetObjectTypeList<CultureObject>()) {
-                if (objectType.IsMainCulture) {
-                    allCultures.Add(objectType);
-                }
-            }
-
-            _allMilitiaTroops = new List<CharacterObject>();
-            foreach (var culture in allCultures) {
-                if (culture.MeleeMilitiaTroop != null) {
-                    _allMilitiaTroops.Add(culture.MeleeMilitiaTroop);
-                }
-                if (culture.RangedMilitiaTroop != null) {
-                    _allMilitiaTroops.Add(culture.RangedMilitiaTroop);
-                }
-            }
-
-        }
 
         private void OnDailyTick() {
 
             var settings = PopulationAndRecruitmentSettings.Instance;
 
-            if (settings.AiMilitiaDemobilizationRate <= 0
-                || settings.VillageOnlySpawnsMilitia)
+            if (settings.AiMilitiaDemobilizationRate <= 0)
                 return;
 
             foreach (var party in MobileParty.All.Where(p => p.IsLordParty && !p.IsMainParty)) {
@@ -57,31 +29,58 @@ namespace PopulationAndRecruitment {
             }
         }
 
+        private static IEnumerable<CharacterObject> GetUpgradePath(CharacterObject character) {
+            var visited = new HashSet<CharacterObject>();
+            var stack = new Stack<CharacterObject>();
+            stack.Push(character);
+
+            while (stack.Count > 0) {
+                var current = stack.Pop();
+                if (visited.Add(current)) {
+                    yield return current;
+                    foreach (var upgrade in current.UpgradeTargets) {
+                        stack.Push(upgrade);
+                    }
+                }
+            }
+        }
+
+
         private void PurgeMilitia(MobileParty party) {
             var settings = PopulationAndRecruitmentSettings.Instance;
 
             var faction = party.LeaderHero?.MapFaction;
-            if (faction == null || GetBasicVolunteerPatch.checkIsAtWar(party.LeaderHero?.Clan?.Kingdom, party.LeaderHero?.Clan)) {
+
+            int troopsToRemove = settings.AiMilitiaDemobilizationRate;
+
+            if (troopsToRemove <= 0)
+                return;
+
+            if (CheckRecruitingPatch.HasAvailableFiefToRecruitFrom(party.LeaderHero))
+                return;
+            
+            if (faction == null 
+                || GetBasicVolunteerPatch.checkIsAtWar(party.LeaderHero?.Clan?.Kingdom, party.LeaderHero?.Clan)) {
                 return;
             }
 
             var militiaElements = party.MemberRoster.GetTroopRoster()
-                                  .Where(e => e.Character != null && _allMilitiaTroops.Contains(e.Character))
+                                  .Where(e => e.Character != null && TroopPool.IsMilitia(e.Character))
+                                  .SelectMany(e => GetUpgradePath(e.Character))
+                                  .Distinct()
                                   .ToList();
 
             if (!militiaElements.Any()) {
                 return;
             }
 
-            int troopsToRemove = settings.AiMilitiaDemobilizationRate;
 
-            foreach (var element in militiaElements) {
-                if (troopsToRemove <= 0) break;
+            foreach (var character in militiaElements) {
 
-                int countInRoster = party.MemberRoster.GetElementNumber(element.Character);
+                int countInRoster = party.MemberRoster.GetElementNumber(character);
                 int amountToRemove = Math.Min(troopsToRemove, countInRoster);
 
-                party.MemberRoster.AddToCounts(element.Character, -amountToRemove);
+                party.MemberRoster.AddToCounts(character, -amountToRemove);
 
                 troopsToRemove -= amountToRemove;
             }

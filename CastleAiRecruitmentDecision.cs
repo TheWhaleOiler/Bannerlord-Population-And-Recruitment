@@ -293,12 +293,19 @@ namespace PopulationAndRecruitment {
                     && hero != settlement.Owner
                     && hero.Clan == Hero.MainHero.Clan)
                     return 0;
+                if (settings.DisableAiPartiesCanRecruitFromAiLordFiefs
+                    && hero != settlement.Owner)
+                    return 0;
             }
 
             if (settings.LordsCanOnlyRecruitFromKingdom
                 && hero.Clan.Kingdom != settlement.OwnerClan.Kingdom)
                 return 0;
 
+            if (settlement.IsVillage 
+                && !GetBasicVolunteerPatch.checkIsAtWar(hero.Clan.Kingdom, hero.Clan)
+                && CheckRecruitingPatch.HasAvailableFiefToRecruitFrom(hero))
+                return 0;
 
             int num = 4;
             if (hero.MapFaction != settlement.MapFaction) {
