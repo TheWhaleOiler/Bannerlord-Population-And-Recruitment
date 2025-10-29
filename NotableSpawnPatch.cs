@@ -25,10 +25,10 @@ namespace PopulationAndRecruitment {
 
         private static void AddNotablesToCastle(Settlement castle) {
 
-            HeroCreator.CreateHeroAtOccupation(Occupation.Headman, castle);
+            HeroCreator.CreateNotable(Occupation.Headman, castle);
 
             for (int i = 0; i < 4; i++) {
-                HeroCreator.CreateHeroAtOccupation(Occupation.Merchant, castle);
+                HeroCreator.CreateNotable(Occupation.Merchant, castle);
             }
         }
     }
