@@ -9,7 +9,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 
 namespace PopulationAndRecruitment {
-    [HarmonyPatch(typeof(MobileParty), "FillPartyStacks")]
+    [HarmonyPatch(typeof(MobileParty), "InitializeMobilePartyWithPartyTemplate")]
     public class PatchFillPartyStacks {
 
         static bool Prefix(MobileParty __instance) {
