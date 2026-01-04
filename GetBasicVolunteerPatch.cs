@@ -31,11 +31,13 @@ namespace PopulationAndRecruitment {
             var kingdom = clan?.Kingdom;
             var culture = sellerHero.Culture;
 
+            var isDemobilizing = settings.EnableAiSettlementMilitiaDemobilization && checkIsAtWar(kingdom, clan);
+
             if (settlement.IsTown) {
                 var prosperity = settlement.Town.Prosperity;
 
                 if (HighProsperityRoll(prosperity, settings.TownAsymptoteDenominatior)
-                    || settings.EnableAiSettlementMilitiaDemobilization)
+                    || isDemobilizing)
                     
                     if (settings.EnableTroopCompatibility)
                         __result = __result; // No-op
@@ -52,7 +54,7 @@ namespace PopulationAndRecruitment {
                 var prosperity = settlement.Town.Prosperity;
 
                 if (HighProsperityRoll(prosperity, settings.CastleAsymptoteDenominatior)
-                    || settings.EnableAiSettlementMilitiaDemobilization)
+                    || isDemobilizing)
 
                     if (settings.EnableTroopCompatibility)
                         __result = __result;

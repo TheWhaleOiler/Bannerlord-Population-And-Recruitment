@@ -28,7 +28,7 @@ namespace PopulationAndRecruitment {
             HeroCreator.CreateNotable(Occupation.Headman, castle);
 
             for (int i = 0; i < 4; i++) {
-                HeroCreator.CreateNotable(Occupation.Merchant, castle);
+                HeroCreator.CreateNotable(Occupation.RuralNotable, castle);
             }
         }
     }

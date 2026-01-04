@@ -19,7 +19,7 @@ namespace PopulationAndRecruitment {
     [HarmonyPatch(typeof(RecruitmentCampaignBehavior), "HourlyTickParty")]
     public static class RecruitmentHourlyPatch {
         static void Postfix(MobileParty mobileParty) {
-            if (!mobileParty.IsLordParty || mobileParty.MapEvent != null || mobileParty == MobileParty.MainParty)
+            if ((!mobileParty.IsCaravan && !mobileParty.IsLordParty) || mobileParty.MapEvent != null || mobileParty == MobileParty.MainParty)
                 return;
 
             var settlement = MobilePartyHelper.GetCurrentSettlementOfMobilePartyForAICalculation(mobileParty);
@@ -43,6 +43,9 @@ namespace PopulationAndRecruitment {
 
             var hero = mobileParty.LeaderHero;
 
+            if (mobileParty.IsCaravan)
+                return true;
+            
             if ((settlement.IsCastle || settlement.IsTown)) {
                 if(settlement.OwnerClan != hero?.Clan)
                     return false;
