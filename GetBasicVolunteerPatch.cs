@@ -20,16 +20,20 @@ namespace PopulationAndRecruitment {
     [HarmonyPatch(typeof(DefaultVolunteerModel))]
     public class GetBasicVolunteerPatch {
 
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPatch("GetBasicVolunteer")]
-        public static void GetBasicVolunteer_Postfix(ref CharacterObject __result, Hero sellerHero) {
+        public static bool GetBasicVolunteer_Postfix(ref CharacterObject __result, Hero sellerHero) {
 
             var settings = PopulationAndRecruitmentSettings.Instance;
-
-            var settlement = sellerHero.CurrentSettlement;
-            var clan = settlement.OwnerClan;
+            var settlement = sellerHero?.CurrentSettlement;
+            var clan = settlement?.OwnerClan;
             var kingdom = clan?.Kingdom;
-            var culture = sellerHero.Culture;
+            var culture = sellerHero?.Culture;
+
+            if (culture == null 
+                || settlement == null)
+                return false;
+
 
             var isDemobilizing = settings.EnableAiSettlementMilitiaDemobilization && checkIsAtWar(kingdom, clan);
 
@@ -83,7 +87,7 @@ namespace PopulationAndRecruitment {
                 }
                 else
                     __result = TroopPool.GetMilitiaTroop(culture);
-             }
+            }
             //else
             //    __result = __result;
 
@@ -98,7 +102,7 @@ namespace PopulationAndRecruitment {
             //        __result = TroopPool.GetMilitiaTroop(culture);
             //}
 
-            //return false;
+            return false;
         }
 
         public static bool checkIsAtWar(Kingdom kingdom, Clan clan) {

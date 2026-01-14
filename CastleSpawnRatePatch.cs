@@ -22,6 +22,7 @@ namespace PopulationAndRecruitment {
                     continue;
                 }
                 bool flag = false;
+
                 CharacterObject basicVolunteer = Campaign.Current.Models.VolunteerModel.GetBasicVolunteer(notable);
 
                 if (basicVolunteer == null)
